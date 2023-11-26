@@ -40,6 +40,7 @@ parser.add_argument('-invert_mask',action="store_true")
 parser.add_argument('-train_val_split',default=0.1)
 parser.add_argument('-unannotated_split',default=0.0,type=float)
 parser.add_argument('-salience_format',default=None,choices=[None,"salience_maps","bounding_boxes"])
+parser.add_argument('-use_TRADES',action="store_true")
 
 args = parser.parse_args()
 device = torch.device('cuda')
@@ -104,7 +105,9 @@ for epoch in range(args.nEpochs):
             cls = cls.to(device)
 
             # Perform Adversarial Attacks
-            if args.use_mask:
+            if args.use_TRADES:
+                pass
+            elif args.use_mask:
                 hmap = hmap.to(device)
                 if args.invert_mask:
                     mask_obj = hmap
@@ -123,7 +126,10 @@ for epoch in range(args.nEpochs):
             total_number_of_samples_over_epoch += batch_size
 
             # Calculate our various losses
-            loss = criterion(outputs, cls)
+            if args.use_TRADES:
+                loss = trades_loss(model=model,x_natural=data,y=cls,optimizer=solver,step_size=1./255.,epsilon=8./255,perturb_steps=32)
+            else:
+                loss = criterion(outputs, cls)
             total_loss_over_epoch += loss.item()
 
             # Backpropagate our losses
